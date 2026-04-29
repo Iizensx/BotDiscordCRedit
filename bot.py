@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from dotenv import load_dotenv
 from datetime import datetime
-import json
+import random
 import os
 
 load_dotenv()
@@ -15,18 +15,6 @@ ADMIN_ROLE_ID = int(os.getenv("ADMIN_ROLE_ID"))
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
-
-def get_next_order_id():
-    path = "order_count.json"
-    if os.path.exists(path):
-        with open(path, "r") as f:
-            data = json.load(f)
-    else:
-        data = {"count": 0}
-    data["count"] += 1
-    with open(path, "w") as f:
-        json.dump(data, f)
-    return f"#{data['count']:04d}"
 
 # ===== ระบบสลิป =====
 
@@ -55,7 +43,7 @@ async def on_message(message):
                 credit_channel = bot.get_channel(CREDIT_CHANNEL_ID)
 
                 for attachment in message.attachments:
-                    order_id = get_next_order_id()
+                    order_id = f"#{random.randint(10000, 99999)}"
 
                     embed = discord.Embed(
                         title="✅  จัดส่งสินค้าเรียบร้อยแล้ว",
@@ -110,7 +98,7 @@ class TicketButton(discord.ui.View):
         admin_role = guild.get_role(ADMIN_ROLE_ID)
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
-         member: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+            member: discord.PermissionOverwrite(view_channel=True, send_messages=True),
         }
         if admin_role:
             overwrites[admin_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
