@@ -1,6 +1,8 @@
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
+from datetime import datetime
+import json
 import os
 
 load_dotenv()
@@ -13,6 +15,18 @@ ADMIN_ROLE_ID = int(os.getenv("ADMIN_ROLE_ID"))
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix="!", intents=intents)
+
+def get_next_order_id():
+    path = "order_count.json"
+    if os.path.exists(path):
+        with open(path, "r") as f:
+            data = json.load(f)
+    else:
+        data = {"count": 0}
+    data["count"] += 1
+    with open(path, "w") as f:
+        json.dump(data, f)
+    return f"#{data['count']:04d}"
 
 # ===== ระบบสลิป =====
 
@@ -37,15 +51,28 @@ async def on_message(message):
                 customer = details.get("ลูกค้า", "ไม่ระบุ")
                 amount = details.get("ราคา", "ไม่ระบุ")
                 note = details.get("หมายเหตุ", "-")
+                now = datetime.now().strftime("%d/%m/%Y %H:%M")
                 credit_channel = bot.get_channel(CREDIT_CHANNEL_ID)
 
                 for attachment in message.attachments:
-                    embed = discord.Embed(title="✅ จัดส่งสินค้าเรียบร้อย", color=0x2ecc71)
-                    embed.add_field(name="👤 ลูกค้า", value=customer, inline=True)
-                    embed.add_field(name="💰 ราคา", value=amount, inline=True)
-                    embed.add_field(name="📝 หมายเหตุ", value=note, inline=False)
+                    order_id = get_next_order_id()
+
+                    embed = discord.Embed(
+                        title="✅  จัดส่งสินค้าเรียบร้อยแล้ว",
+                        description="━━━━━━━━━━━━━━━━━━━━━━",
+                        color=0x57F287
+                    )
+                    embed.add_field(name="👤  ลูกค้า", value=f"```{customer}```", inline=True)
+                    embed.add_field(name="💰  ราคา", value=f"```{amount}```", inline=True)
+                    embed.add_field(name="🎫  เลขออเดอร์", value=f"```{order_id}```", inline=True)
+                    embed.add_field(name="📝  หมายเหตุ", value=f"```{note}```", inline=False)
+                    embed.add_field(name="🕐  วันเวลา", value=f"```{now}```", inline=False)
+                    embed.add_field(name="\u200b", value="━━━━━━━━━━━━━━━━━━━━━━", inline=False)
                     embed.set_image(url=attachment.url)
+                    embed.set_author(name="IZen Store", icon_url="https://cdn.discordapp.com/embed/avatars/0.png")
                     embed.set_footer(text="✨ IZen store ✨ • ขอบคุณที่ใช้บริการครับ 🙏")
+                    embed.timestamp = datetime.utcnow()
+
                     await credit_channel.send(embed=embed)
 
                 try:
@@ -83,9 +110,10 @@ class TicketButton(discord.ui.View):
         admin_role = guild.get_role(ADMIN_ROLE_ID)
         overwrites = {
             guild.default_role: discord.PermissionOverwrite(view_channel=False),
-            member: discord.PermissionOverwrite(view_channel=True, send_messages=True),
-            admin_role: discord.PermissionOverwrite(view_channel=True, send_messages=True),
+         member: discord.PermissionOverwrite(view_channel=True, send_messages=True),
         }
+        if admin_role:
+            overwrites[admin_role] = discord.PermissionOverwrite(view_channel=True, send_messages=True)
 
         channel = await guild.create_text_channel(
             name=f"ticket-{member.name.lower()}",
