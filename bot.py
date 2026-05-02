@@ -1,7 +1,7 @@
 import discord
 from discord.ext import commands
 from dotenv import load_dotenv
-from datetime import datetime
+from datetime import datetime, timezone, timedelta
 import random
 import os
 
@@ -27,12 +27,13 @@ async def on_message(message):
             if not message.attachments:
                 await message.reply("❌ กรุณาแนบรูปสลิปด้วยนะครับ!")
             else:
-                # แยก 3 บรรทัด
                 lines = message.content.strip().split("\n")
-                item     = lines[0] if len(lines) > 0 else "ไม่ระบุ"
-                price    = lines[1] if len(lines) > 1 else "ไม่ระบุ"
-                note     = lines[2] if len(lines) > 2 else "-"
+                item  = lines[0] if len(lines) > 0 else "ไม่ระบุ"
+                price = lines[1] if len(lines) > 1 else "ไม่ระบุ"
+                note  = lines[2] if len(lines) > 2 else "-"
 
+                thai_tz = timezone(timedelta(hours=7))
+                now = datetime.now(thai_tz).strftime("%d/%m/%Y %H:%M")
                 credit_channel = bot.get_channel(CREDIT_CHANNEL_ID)
 
                 for attachment in message.attachments:
@@ -43,10 +44,10 @@ async def on_message(message):
                         description="━━━━━━━━━━━━━━━━━━━━━━",
                         color=0x57F287
                     )
-                    embed.add_field(name="🎁  สินค้า", value=f"```{item}```", inline=True)
                     embed.add_field(name="💰  ราคา", value=f"```{price}```", inline=True)
                     embed.add_field(name="🎫  เลขออเดอร์", value=f"```{order_id}```", inline=True)
                     embed.add_field(name="📝  หมายเหตุ", value=f"```{note}```", inline=False)
+                    embed.add_field(name="🕐  วันเวลา", value=f"```{now}```", inline=False)
                     embed.add_field(name="\u200b", value="━━━━━━━━━━━━━━━━━━━━━━", inline=False)
                     embed.set_image(url=attachment.url)
                     embed.set_author(name="IZen Store", icon_url="https://cdn.discordapp.com/embed/avatars/0.png")
